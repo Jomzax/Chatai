@@ -9,6 +9,9 @@
 3. **Upload Page** — อัปโหลดเอกสาร (PDF/TXT) แล้วถามคำถามเกี่ยวกับเอกสารได้
 4. **Token Usage** — แสดง token ที่ใช้ในแต่ละข้อความ
 
+##
+ให้ไปดู D:\โปรเจคภาษาต่างๆ\chatai\.claude\skills ว่ามีskill อะไรบ้างแล้วหยิบมาใช้
+
 ## Tech Stack (เลือกใช้แน่นอน)
 
 - **Frontend:** Next.js
@@ -23,6 +26,31 @@
 
 - **Required Features:** ต้องทำให้ครบทั้ง 5 ข้อ (30 คะแนน)
 - **Bonus Features:** เลือกทำหลังจาก Required เสร็จ — เป้าหมาย 20 คะแนน
+
+## โครงสร้าง Frontend (Next.js 16 App Router)
+
+**ให้ยึดโครงสร้างนี้ folder เหล่านี้และจะสร้างเพิ่มได้ถ้ามันเหมาะสมกับงาน  — ผู้ใช้ตัดสินใจไว้แล้ว**
+
+```
+frontend/src/
+├── app/          ← Next.js routing (page.tsx, layout.tsx, login/) — บังคับ
+├── api/          ← API client functions (เรียก backend Express)
+├── assets/       ← รูป/ไฟล์ที่ import เข้าโค้ด
+├── components/   ← UI components ใช้ซ้ำ
+├── hooks/        ← React hooks (useAuth.ts ฯลฯ)
+├── lib/          ← utilities, helpers, constants
+├── types/        ← TypeScript types (interface, type)
+└── validators/   ← form/data validators (zod, yup)
+```
+
+### กติกาเพิ่มเติม
+
+- **ไฟล์ใหม่ทุกตัวต้องอยู่ใน folder ที่เหมาะสม** ห้ามทิ้ง root หรือสร้าง folder ใหม่นอกรายการนี้โดยไม่ขออนุญาต
+- **ห้ามใช้** `pages/`, `routes/`, `templates/`, `@types/`, `themes/`, `utils/` — เคยมีแล้วลบไป
+- **ห้ามสร้าง** `app.tsx`, `main.tsx`, `index.html`, `vite-env.d.ts` — ขัดกับ Next.js
+- ลิงก์ภายใน app ใช้ `next/link` ไม่ใช้ `<a>`
+- Icons ใช้ `lucide-react` (ติดตั้งแล้ว)
+- ไฟล์เปล่าที่อยากให้ Git track ใส่ `.gitkeep`
 
 ## Required Features (30 คะแนน — ต้องทำทั้งหมด)
 
@@ -81,3 +109,4 @@
 
 - คำถามที่เกี่ยวกับการแก้ `AI_JOURNAL.md` หรือ skill `journal` เอง (เพื่อหลีกเลี่ยง loop)
 - คำทักทายสั้นๆ ที่ไม่มีเนื้อหา เช่น "สวัสดี", "ขอบคุณ"
+- ให้เขียนต่อจาก Session {N} ล่า สุดไม่ต้องเขียนย้อนหลัง
