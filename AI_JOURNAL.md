@@ -90,3 +90,30 @@
 **AI ตอบว่า:** ลิสต์ 9 skills รวม journal (ของผู้ใช้) + 8 ตัวจาก GitHub (rag-architect, database-designer, api-design-reviewer, api-test-suite-builder, pr-review-expert, dependency-auditor, observability-designer, ci-cd-pipeline-builder) พร้อมคำอธิบายสั้นๆ ของแต่ละตัว
 **สิ่งที่เราปรับเอง:** -
 
+## Session 19: ทดสอบระบบบันทึก AI Journal
+**คำถามที่ถาม AI:** "ทดสอบระบบ AI_JOURNAL.md ว่าทำงานไหม"
+**AI ตอบว่า:** เพิ่ม Session 19 ต่อท้ายไฟล์ผ่านกติกาใน CLAUDE.md เพื่อยืนยันว่าระบบบันทึกอัตโนมัติยังทำงานปกติ
+**สิ่งที่เราปรับเอง:** -
+
+## Session 20: ติดตั้ง .github/ (CI/CD, PR template, issue template)
+**คำถามที่ถาม AI:** "ติดตั้งCI/CD ติดไปเลย"
+**AI ตอบว่า:** สร้างโฟลเดอร์ `.github/` ที่ root พร้อม `workflows/ci.yml` (CI สำหรับ frontend Next.js + backend Express + docker compose), `pull_request_template.md` ภาษาไทยพร้อม checklist และ `ISSUE_TEMPLATE/` (bug_report.md, feature_request.md) ทำงานอัตโนมัติเมื่อ push หรือเปิด PR/Issue บน GitHub
+**สิ่งที่เราปรับเอง:** -
+
+## Session 21: สร้างหน้า Login ตามดีไซน์ Nexus AI
+**คำถามที่ถาม AI:** "ให้สร้างหน้าล็อคอินตามรูปที่ฉันได้ออกแบบไว้" (แนบรูป mockup Nexus AI)
+**AI ตอบว่า:** สร้าง `frontend/src/app/login/page.tsx` ด้วย Next.js 16 + Tailwind v4 ตามดีไซน์ Nexus AI ครบทุกส่วน — โลโก้ node-graph, การ์ดสีขาว shadow, แท็บ LOGIN/SIGNUP, ฟิลด์ email/password พร้อม icon, ลิงก์ Forgot, checkbox Remember, ปุ่ม Sign In ม่วง, ตัวคั่น OR CONTINUE WITH, ปุ่ม Google/GitHub, badge PROTECTED ROUTES ENABLED, footer ISO/IEC 27001 พร้อม mock auth admin/admin123 redirect ไป /chat
+**สิ่งที่เราปรับเอง:** เปลี่ยน icons inline SVG เป็น `lucide-react` (Lock, Mail, Shield, MessageCircle, Eye, EyeOff), rebrand จาก "Nexus AI" เป็น "Chat Ai", แปลข้อความทั้งหมดเป็นภาษาไทย (ยินดีต้อนรับ / ลงชื่อเข้าใช้ / สมัครสมาชิก / อีเมล / รหัสผ่าน / จำรหัสผ่าน / ลืมรหัสผ่าน), เพิ่มปุ่ม show/hide password (toggle Eye/EyeOff), เพิ่ม useEffect ให้ error message หายเองหลัง 3 วินาที, ย้ายลิงก์ "ลืมรหัสผ่าน?" ให้อยู่ติดกับ checkbox จำรหัสผ่าน, ลบ badge PROTECTED ROUTES ENABLED + ข้อความ SSL/SOC2 ออก, ใช้ `next/link` แทน `<a>` ในลิงก์ภายใน และ สร้าง `src/hooks/useAuth.ts` (login set cookie auth_token / logout clear), สร้าง `src/app/chat/page.tsx` เป็น Server Component ที่อ่าน cookie ผ่าน `next/headers` แล้ว `redirect("/login")` ถ้าไม่มี, สร้าง `src/app/chat/LogoutButton.tsx` (client component), แก้ `login/page.tsx` ลบ mock check ซ้ำซ้อน เหลือแค่เรียก `login()`
+
+## Session 22: สร้างโครงสร้าง folder ตามรูปที่ผู้ใช้ส่ง
+**คำถามที่ถาม AI:** "ให้ทำตามโครงสร้างที่ส่งให้หน่อยสร้างขึ้นมาก่อนเลย" (รูปแสดง src/ โครง Vite-style: @types, api, assets, components, hooks, pages, routes, templates, themes, utils, validators) และ ให้แก้โครงสร้างให้เข้ากับ next.js
+**AI ตอบว่า:** สร้างโฟลเดอร์ทั้ง 11 ตัวใน `frontend/src/` (เก็บ `app/` ของ Next.js ไว้คู่กัน) พร้อมใส่ `.gitkeep` ในทุกโฟลเดอร์ที่ว่างเพื่อให้ Git track ได้ ไม่สร้างไฟล์ที่ขัดกับ Next.js เช่น `app.tsx`, `main.tsx`, `index.html`, `vite-env.d.ts`และ ลบโฟลเดอร์ที่ขัดกับ Next.js (`pages/`, `routes/`, `templates/`), เปลี่ยนชื่อ `@types/` → `types/`, `themes/` → `styles/`, `utils/` → `lib/` ให้ตรง community convention ของ Next.js เหลือโครงสุดท้าย: `app/`, `api/`, `assets/`, `components/`, `hooks/`, `lib/`, `styles/`, `types/`, `validators/`
+**สิ่งที่เราปรับเอง:** -
+
+
+
+
+
+
+
+
