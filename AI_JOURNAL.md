@@ -110,6 +110,11 @@
 **AI ตอบว่า:** สร้างโฟลเดอร์ทั้ง 11 ตัวใน `frontend/src/` (เก็บ `app/` ของ Next.js ไว้คู่กัน) พร้อมใส่ `.gitkeep` ในทุกโฟลเดอร์ที่ว่างเพื่อให้ Git track ได้ ไม่สร้างไฟล์ที่ขัดกับ Next.js เช่น `app.tsx`, `main.tsx`, `index.html`, `vite-env.d.ts`และ ลบโฟลเดอร์ที่ขัดกับ Next.js (`pages/`, `routes/`, `templates/`), เปลี่ยนชื่อ `@types/` → `types/`, `themes/` → `styles/`, `utils/` → `lib/` ให้ตรง community convention ของ Next.js เหลือโครงสุดท้าย: `app/`, `api/`, `assets/`, `components/`, `hooks/`, `lib/`, `styles/`, `types/`, `validators/`
 **สิ่งที่เราปรับเอง:** -
 
+## Session 23: สร้างหน้า /chat ตามดีไซน์ AI Assistant
+**คำถามที่ถาม AI:** "สร้างหน้า chat โดยยึดโครงสร้างเป็นหลัก และเอามาประกอบกันให้ได้หน้า /chat" (แนบรูป mockup AI Assistant — sidebar ซ้าย + welcome + 3 cards + input bar + status)
+**AI ตอบว่า:** แตกเป็น components ตามโครง — `types/chat.ts` (types), `lib/mockChat.ts` (data จำลอง), `components/chat/Sidebar.tsx` (logo + ปุ่มแชทใหม่ + history + profile + logout), `components/chat/SuggestionCard.tsx` (การ์ดแนะนำ มี icon 3 แบบ: document/code/lightbulb), `components/chat/MessageInput.tsx` (ช่อง chat + attach/mic/send), `components/chat/StatusBar.tsx` (SYSTEM OPTIMAL + token counter), แล้วประกอบใน `app/chat/page.tsx` ที่ยังเป็น Server Component ตรวจ cookie auth_token ก่อน — ลบ LogoutButton.tsx เดิมเพราะรวมเข้า Sidebar แล้ว ใช้ lucide-react icons ทุกตัว
+**สิ่งที่เราปรับเอง:** -
+
 
 
 
