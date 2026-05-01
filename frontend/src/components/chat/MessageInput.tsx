@@ -19,6 +19,8 @@ import type { UploadDocumentResponse } from "@/types/upload";
 type Props = {
   disabled?: boolean;
   onSend?: (message: string) => Promise<void> | void;
+  tokenTotal?: number;
+  tokenLimit?: number;
 };
 
 type PreviewKind = "pdf" | "txt";
@@ -42,7 +44,12 @@ function countTextLines(content: string) {
   return content.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
 }
 
-export default function MessageInput({ disabled = false, onSend }: Props) {
+export default function MessageInput({
+  disabled = false,
+  onSend,
+  tokenTotal = 0,
+  tokenLimit = 3000,
+}: Props) {
   const [value, setValue] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -201,9 +208,12 @@ export default function MessageInput({ disabled = false, onSend }: Props) {
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <p className="text-xs text-slate-500">
-          Upload PDF or TXT files up to 5 MB.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <p>Upload PDF or TXT files up to 5 MB.</p>
+          <p>
+            token: {tokenTotal}/{tokenLimit}
+          </p>
+        </div>
 
         {uploadError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -322,7 +332,7 @@ export default function MessageInput({ disabled = false, onSend }: Props) {
           <button
             type="submit"
             disabled={isBusy}
-            className="rounded-2xl bg-indigo-600 p-3 text-white transition hover:bg-indigo-700"
+            className="rounded-2xl bg-indigo-600 p-3 text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

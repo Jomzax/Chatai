@@ -12,6 +12,15 @@ export type ChatMessage = {
   status?: "streaming" | "done" | "error";
 };
 
+export type ChatSession = {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+  titleEdited?: boolean;
+};
+
 export type Suggestion = {
   id: string;
   title: string;

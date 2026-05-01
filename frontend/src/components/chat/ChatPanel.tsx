@@ -7,17 +7,32 @@ import type { ChatMessage } from "@/types/chat";
 import MessageInput from "./MessageInput";
 
 const MAX_CONTEXT_MESSAGES = 8;
+const MAX_SESSION_TOKENS = 3000;
 
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random()}`;
 
-export default function ChatPanel() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+type Props = {
+  messages: ChatMessage[];
+  onMessagesChange: (messages: ChatMessage[]) => void;
+};
+
+function estimateTokens(messages: ChatMessage[]) {
+  const totalCharacters = messages.reduce(
+    (total, message) => total + message.content.length,
+    0
+  );
+
+  return Math.min(MAX_SESSION_TOKENS, Math.ceil(totalCharacters / 4));
+}
+
+export default function ChatPanel({ messages, onMessagesChange }: Props) {
   const [error, setError] = useState("");
   const [isResponding, setIsResponding] = useState(false);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const tokenTotal = estimateTokens(messages);
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,7 +53,7 @@ export default function ChatPanel() {
     };
     const nextMessages = [...messages, userMessage];
 
-    setMessages([...nextMessages, assistantMessage]);
+    onMessagesChange([...nextMessages, assistantMessage]);
     setError("");
     setIsResponding(true);
 
@@ -48,18 +63,20 @@ export default function ChatPanel() {
           .slice(-MAX_CONTEXT_MESSAGES)
           .map(({ role, content }) => ({ role, content })),
         onChunk: (chunk) => {
-          setMessages((current) =>
-            current.map((item) =>
+          onMessagesChange(
+            [...nextMessages, assistantMessage].map((item) =>
               item.id === assistantMessage.id
                 ? { ...item, content: item.content + chunk }
                 : item
             )
           );
+
+          assistantMessage.content += chunk;
         },
       });
 
-      setMessages((current) =>
-        current.map((item) =>
+      onMessagesChange(
+        [...nextMessages, assistantMessage].map((item) =>
           item.id === assistantMessage.id ? { ...item, status: "done" } : item
         )
       );
@@ -69,8 +86,8 @@ export default function ChatPanel() {
           ? chatError.message
           : "Unable to get AI response.";
       setError(message);
-      setMessages((current) =>
-        current.map((item) =>
+      onMessagesChange(
+        [...nextMessages, assistantMessage].map((item) =>
           item.id === assistantMessage.id
             ? {
                 ...item,
@@ -92,10 +109,10 @@ export default function ChatPanel() {
           {messages.length === 0 ? (
             <div className="space-y-2">
               <h1 className="text-4xl font-bold text-slate-900">
-                Welcome back.
+                วันนี้ให้ช่วยอะไรดี
               </h1>
               <p className="text-slate-500">
-                Ask the assistant anything and the answer will stream in live.
+                เริ่มแชทใหม่หรือค้นหาแชทเก่าจาก sidebar ได้เลย
               </p>
             </div>
           ) : (
@@ -150,7 +167,12 @@ export default function ChatPanel() {
               {error}
             </div>
           ) : null}
-          <MessageInput onSend={handleSend} disabled={isResponding} />
+          <MessageInput
+            onSend={handleSend}
+            disabled={isResponding}
+            tokenTotal={tokenTotal}
+            tokenLimit={MAX_SESSION_TOKENS}
+          />
         </div>
       </div>
     </div>
