@@ -9,11 +9,16 @@ import {
   Send,
   X,
 } from "lucide-react";
-import { deleteDocument, uploadDocument, validateUploadFile } from "@/api/upload";
+import {
+  deleteDocument,
+  uploadDocument,
+  validateUploadFile,
+} from "@/api/upload";
 import type { UploadDocumentResponse } from "@/types/upload";
 
 type Props = {
-  onSend?: (message: string) => void;
+  disabled?: boolean;
+  onSend?: (message: string) => Promise<void> | void;
 };
 
 type PreviewKind = "pdf" | "txt";
@@ -37,7 +42,7 @@ function countTextLines(content: string) {
   return content.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
 }
 
-export default function MessageInput({ onSend }: Props) {
+export default function MessageInput({ disabled = false, onSend }: Props) {
   const [value, setValue] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -74,6 +79,7 @@ export default function MessageInput({ onSend }: Props) {
 
   const activeFile =
     selectedFiles.find((file) => file.id === activeFileId) ?? null;
+  const isBusy = isUploading || disabled;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -93,7 +99,7 @@ export default function MessageInput({ onSend }: Props) {
       }
 
       if (text) {
-        onSend?.(text);
+        await onSend?.(text);
       }
 
       selectedFiles.forEach((file) => {
@@ -289,7 +295,7 @@ export default function MessageInput({ onSend }: Props) {
             type="button"
             title="Attach file"
             onClick={handleOpenFilePicker}
-            disabled={isUploading}
+            disabled={isBusy}
             className="p-2 text-slate-400 transition hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploading ? (
@@ -302,7 +308,7 @@ export default function MessageInput({ onSend }: Props) {
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            disabled={isUploading}
+            disabled={isBusy}
             placeholder="Send a message to your AI assistant..."
             className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
@@ -315,7 +321,7 @@ export default function MessageInput({ onSend }: Props) {
           </button>
           <button
             type="submit"
-            disabled={isUploading}
+            disabled={isBusy}
             className="rounded-2xl bg-indigo-600 p-3 text-white transition hover:bg-indigo-700"
           >
             {isUploading ? (

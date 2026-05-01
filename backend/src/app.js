@@ -1,10 +1,15 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
-import { resolve } from 'path';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import connectMongo from './db/mongo.js';
 import routes from './routes/index.js';
 import { startUploadCleanupJob } from './services/uploadCleanup.js';
+
+dotenv.config({
+  path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env'),
+});
 
 const app = express();
 const port = process.env.PORT || 4000;
