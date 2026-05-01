@@ -5,12 +5,6 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -19,8 +13,24 @@
   }
 }
 
+/* แบบที่ V4 ไม่ต้องมีไฟล์ tailwind.config.js สามารถใช้ @theme ในไฟล์ CSS ได้เลย */
+@theme {
+  --color-brandDark: #0b0b0d;
+  --color-brandBlue: #125795;
+  --container-padding: 1rem;
+  --container-padding-sm: 2rem;
+  --container-padding-lg: 4rem;
+  --container-padding-xl: 5rem;
+  --container-padding-2xl: 6rem;
+}
+
+/* ทำ container center โดยทำให้เป็น margin-left: auto; margin-right: auto; มาจาก center: true */
+.container {
+  margin-inline: auto;
+}
+
 body {
-  background: var(--background);
   color: var(--foreground);
+  background: var(--background);
   font-family: var(--font-kanit);
 }

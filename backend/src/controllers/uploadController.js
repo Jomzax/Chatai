@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import Upload from '../models/upload.js';
+import { buildDocumentIndex } from '../services/documentContext.js';
 
 const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
 
@@ -30,6 +31,23 @@ const uploadDocument = async (req, res, next) => {
     const originalName = path.basename(
       req.file.decodedOriginalName || req.file.originalname
     );
+    let documentIndex;
+
+    try {
+      documentIndex = await buildDocumentIndex({
+        filePath: req.file.path,
+        extension: req.file.safeExtension || path.extname(originalName).toLowerCase(),
+      });
+    } catch (error) {
+      documentIndex = {
+        textPreview: '',
+        textLength: 0,
+        chunks: [],
+        extractionStatus: 'failed',
+        extractionError: error.message,
+      };
+    }
+
     const document = await Upload.create({
       originalName,
       storedName: req.file.filename,
@@ -37,6 +55,8 @@ const uploadDocument = async (req, res, next) => {
       extension: req.file.safeExtension || path.extname(originalName).toLowerCase(),
       size: req.file.size,
       filePath: req.file.path,
+      userId: req.user.id,
+      ...documentIndex,
     });
 
     return res.status(201).json({
@@ -48,6 +68,9 @@ const uploadDocument = async (req, res, next) => {
         mimeType: document.mimeType,
         size: document.size,
         uploadedAt: document.uploadedAt,
+        extractionStatus: document.extractionStatus,
+        textLength: document.textLength,
+        textPreview: document.textPreview,
         url: `${req.protocol}://${req.get('host')}/uploads/${document.storedName}`,
       },
     });
@@ -62,7 +85,10 @@ const uploadDocument = async (req, res, next) => {
 
 export const deleteDocument = async (req, res, next) => {
   try {
-    const document = await Upload.findById(req.params.id);
+    const document = await Upload.findOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
 
     if (!document) {
       return res.status(404).json({ message: 'File not found.' });

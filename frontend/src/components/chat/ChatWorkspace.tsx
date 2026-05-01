@@ -102,11 +102,11 @@ export default function ChatWorkspace() {
       current.map((session) =>
         session.id === sessionId
           ? {
-              ...session,
-              title: nextTitle,
-              titleEdited: true,
-              updatedAt: Date.now(),
-            }
+            ...session,
+            title: nextTitle,
+            titleEdited: true,
+            updatedAt: Date.now(),
+          }
           : session
       )
     );
@@ -162,7 +162,7 @@ export default function ChatWorkspace() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex flex-col-1 mt-0 min-h-screen bg-slate-50 text-slate-900">
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSession.id}
@@ -179,6 +179,8 @@ export default function ChatWorkspace() {
           onMessagesChange={handleMessagesChange}
         />
       </main>
+
+
     </div>
   );
 }

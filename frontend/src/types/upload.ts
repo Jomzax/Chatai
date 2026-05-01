@@ -5,6 +5,9 @@ export type UploadedDocument = {
   mimeType: string;
   size: number;
   uploadedAt: string;
+  extractionStatus?: "ready" | "empty" | "failed";
+  textLength?: number;
+  textPreview?: string;
   url: string;
 };
 

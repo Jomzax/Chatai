@@ -1,16 +1,21 @@
 import type { ChatMessage } from "@/types/chat";
+import type { UploadedDocument } from "@/types/upload";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
 
 type StreamChatOptions = {
   messages: Pick<ChatMessage, "role" | "content">[];
+  documentIds?: string[];
+  documents?: UploadedDocument[];
   signal?: AbortSignal;
   onChunk: (chunk: string) => void;
 };
 
 export async function streamChat({
   messages,
+  documentIds = [],
+  documents = [],
   signal,
   onChunk,
 }: StreamChatOptions) {
@@ -20,7 +25,7 @@ export async function streamChat({
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, documentIds, documents }),
     signal,
   });
 

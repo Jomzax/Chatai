@@ -1,3 +1,5 @@
+import type { UploadedDocument } from "./upload";
+
 export type ChatHistoryItem = {
   id: string;
   title: string;
@@ -10,6 +12,7 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   status?: "streaming" | "done" | "error";
+  attachments?: UploadedDocument[];
 };
 
 export type ChatSession = {

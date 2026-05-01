@@ -14,11 +14,14 @@ import {
   uploadDocument,
   validateUploadFile,
 } from "@/api/upload";
-import type { UploadDocumentResponse } from "@/types/upload";
+import type { UploadDocumentResponse, UploadedDocument } from "@/types/upload";
 
 type Props = {
   disabled?: boolean;
-  onSend?: (message: string) => Promise<void> | void;
+  onSend?: (
+    message: string,
+    attachments: UploadedDocument[]
+  ) => Promise<void> | void;
   tokenTotal?: number;
   tokenLimit?: number;
 };
@@ -105,8 +108,11 @@ export default function MessageInput({
         uploadedResponses.push(await uploadDocument(file.file));
       }
 
-      if (text) {
-        await onSend?.(text);
+      if (text || uploadedResponses.length > 0) {
+        await onSend?.(
+          text,
+          uploadedResponses.map((response) => response.file)
+        );
       }
 
       selectedFiles.forEach((file) => {
