@@ -61,12 +61,13 @@ test-results/
 # ========================================
 # Uploads (ไฟล์ PDF/TXT จากผู้ใช้ — ไม่ควรอยู่ใน repo)
 # ========================================
-uploads/
+uploads/*
 upload/
 files/
 attachments/
 tmp/
 temp/
+!uploads/.gitkeep
 
 # ========================================
 # Database files (MongoDB ใช้ external server แต่กันไว้)

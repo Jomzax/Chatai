@@ -41,7 +41,7 @@ logs/
 .vercel/
 
 # Database / Uploads (data files shouldn't be in git)
-uploads/
+
 *.db
 *.sqlite
 *.sqlite3

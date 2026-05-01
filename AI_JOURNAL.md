@@ -120,13 +120,8 @@
 **AI ตอบว่า:** ติดตั้ง `mongoose`, `dotenv` และ `nodemon`, ปรับ `backend/package.json` ให้มี `type: module` พร้อม script `start` และ `dev`, เขียน `backend/src/app.js` ให้โหลด `.env` เรียก `connectMongo()` ก่อนเปิด server, เพิ่ม route พื้นฐานใน `backend/src/routes/index.js` และทดสอบจนยืนยันได้ว่า Mongo เชื่อมสำเร็จพร้อมเรียก `http://127.0.0.1:4000/health` ได้ผล `{\"ok\":true}`
 **สิ่งที่เราปรับเอง:** -
 
+## Session 25: ทำ Upload File (PDF, TXT) พร้อม validate และ sanitize path
+**คำถามที่ถาม AI:** "ทำฟังค์ Upload File (PDF, TXT) ครบ + validate type/size + sanitize path โดยใช้ปุ่มแนบไฟล์ของ MessageInput.tsx"
+**AI ตอบว่า:** เพิ่ม `POST /api/uploads` ใน backend ด้วย `multer` สำหรับรับไฟล์ PDF/TXT, ตรวจชนิดไฟล์และจำกัดขนาดไม่เกิน 5 MB, sanitize ชื่อไฟล์และบังคับเส้นทางจัดเก็บให้อยู่ในโฟลเดอร์ `backend/uploads`, บันทึก metadata ลง MongoDB, เสิร์ฟไฟล์ผ่าน `/uploads` และเชื่อมปุ่ม `Paperclip` ใน `frontend/src/components/chat/MessageInput.tsx` ให้เปิด file picker, อัปโหลดจริง, แสดง error/success และรายการไฟล์ที่อัปโหลดล่าสุด
+**สิ่งที่เราปรับเอง:** ย้ายรายการไฟล์เข้าไปอยู่ภายในกล่องข้อความด้านบนแถวพิมพ์, แสดงเป็นการ์ดแนวนอนแบบเลื่อนได้, ทำ `preview TXT` เป็นการ์ดชื่อไฟล์กับจำนวนบรรทัด และ `preview PDF` ผ่าน iframe พร้อมป้ายประเภทไฟล์และปุ่มลบในแต่ละการ์ด และ เพิ่ม pending skeleton card ระหว่างอัปโหลดไฟล์, ยกเลิกการจำกัดจำนวนไฟล์ที่เคยตัดไฟล์เก่าทิ้ง, คงรายการไฟล์ทั้งหมดไว้ในแถวเลื่อนแนวนอน และย้ายข้อความแนะนำพร้อมป้ายเตือนไปไว้เหนือกล่องข้อความ ย้ายข้อความ Upload PDF or TXT files up to 5 MB. กับป้ายเตือน Please choose a PDF or TXT file.และ ตั้งเวลาป้ายเตือนให้หายไปเอง
 
-## Session 25: ตั้งชื่อ commit สำหรับงาน backend และ Docker
-**คำถามที่ถาม AI:** "ฉันจะตั้งชื่อ commit ใน github ว่าอะไรดี และมีไฟล์ docker อีก"
-**AI ตอบว่า:** แนะนำให้ตั้งชื่อ commit ตามก้อนงานจริง โดยถ้ารวมงาน backend MongoDB และ Docker ไว้ก้อนเดียวใช้ชื่อประมาณ `feat(backend): add MongoDB connection and docker compose setup` แต่ถ้าอยากให้ประวัติอ่านง่ายควรแยก commit ของ backend กับ Docker ออกจาก frontend
-**สิ่งที่เราปรับเอง:** -
-
-## Session 26: อธิบายคำว่า feat ในชื่อ commit
-**คำถามที่ถาม AI:** "feat คืออะไร"
-**AI ตอบว่า:** `feat` ย่อมาจาก `feature` ใช้ในชื่อ commit เพื่อบอกว่า commit นี้เพิ่มความสามารถใหม่หรือฟีเจอร์ใหม่ให้โปรเจกต์ ไม่ใช่การแก้บั๊กหรือจัดรูปแบบโค้ดเฉยๆ
-**สิ่งที่เราปรับเอง:** -
