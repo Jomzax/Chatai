@@ -130,4 +130,42 @@
 **AI ตอบว่า:** เพิ่มระบบ chat streaming จริง โดยมี backend endpoint `POST /api/chat/stream`, service สำหรับ Gemini/Claude พร้อม mock fallback, timeout, validation และหน้า chat ฝั่ง frontend ที่อ่าน stream ทีละ chunk แล้วแสดงคำตอบสดและภาษาไทยได้ 
 **สิ่งที่เราปรับเอง:** ไม่บันทึกค่า API key จริงลง journal และ เพิ่มกติกาไม่ใส่ emoji ถ้าไม่จำเป็นและไม่แต่งข้อมูลเอง
 
+## Session 27: ปรับ Sidebar เป็นรูปแบบคล้าย ChatGPT พร้อมจัดการ session แชท
+**คำถามที่ถาม AI:** ให้แก้ Sidebar ตามรูป ChatGPT โดยมีแค่ปุ่มแชทใหม่กับค้นหาแชท, ให้เปลี่ยนชื่อและลบแชทได้จริง, แสดง total/token ต่อ session แบบ `token: 0/3000` และให้ตำแหน่งแสดงอยู่เหนือช่องส่งข้อความ
+**AI ตอบว่า:** เพิ่ม `ChatWorkspace.tsx` เป็น client state กลางสำหรับจัดการ chat sessions, เก็บ session ลง `localStorage`, เพิ่มสร้างแชทใหม่, เลือกแชท, ค้นหาแชท, เปลี่ยนชื่อ, ลบแชท และ auto title จากข้อความแรก พร้อมแก้ `Sidebar.tsx`, `ChatPanel.tsx`, `MessageInput.tsx`, `types/chat.ts` และ `app/chat/page.tsx` ให้ทำงานร่วมกัน
+**สิ่งที่เราปรับเอง:** ขอให้คงสีเดิมของโปรเจกต์ ไม่เอาสไตล์มืดแบบ ChatGPT เต็มตัว จึงปรับกลับเป็นโทน `slate`, `white`, `indigo` แต่คงรูปแบบและพฤติกรรม sidebar แบบ ChatGPT ไว้
+
+## Session 28: เพิ่ม token counter ต่อ session
+**คำถามที่ถาม AI:** ถ้าถึง `3000` แล้วยังคุยต่อได้ไหม และให้แสดง token total ต่อ session
+**AI ตอบว่า:** เพิ่มการคำนวณ token แบบประมาณจากจำนวนตัวอักษรในข้อความของ session ปัจจุบัน แล้วแสดง `token: current/3000` เหนือช่องส่งข้อความคู่กับข้อความ `Upload PDF or TXT files up to 5 MB.`
+**สิ่งที่เราปรับเอง:** ระบุว่าตอนนี้ token counter เป็นตัวแสดงผลเท่านั้น ยังไม่ได้บล็อกการส่งข้อความเมื่อครบ 3000 และยังไม่ได้ทำระบบ summarize/context trimming อัตโนมัติ
+
+## Session 29: ทำ Chat with Uploaded File Context สำหรับ PDF/TXT
+**คำถามที่ถาม AI:** ทำ `Chat with Uploaded File Context` ให้ครบ ทำงานแม่นยำ handle ไฟล์ใหญ่ และแก้ปัญหา upload file แล้วไม่แสดงในหน้าแชท
+**AI ตอบว่า:** ติดตั้ง `pdf-parse`, เพิ่ม `backend/src/services/documentContext.js` เพื่อ extract ข้อความจาก `.txt` และ `.pdf`, ทำ chunk เอกสาร, เก็บ `textPreview`, `textLength`, `chunks`, `extractionStatus` ใน model `Upload`, ปรับ `uploadController.js` ให้ index เอกสารหลังอัปโหลด และปรับ `chatController.js` ให้ส่ง document context เข้า prompt เมื่อแชทพร้อม `documentIds`
+**สิ่งที่เราปรับเอง:** เพิ่มการแสดง attachment card ใน bubble แชท โดยแสดงชื่อไฟล์, ขนาดไฟล์, จำนวน chars ที่ index ได้ และสถานะ extraction รวมถึงให้ follow-up ใน session เดิมยังสามารถใช้ไฟล์เดิมเป็น context ได้
+
+## Session 30: แก้ระบบอ่านไฟล์และ Citation จากเอกสาร
+**คำถามที่ถาม AI:** แก้ปัญหาถามว่าไฟล์อะไรแล้วตอบไม่ได้, ต้องอ่านเนื้อหา PDF/TXT ได้จริง และทำ Citation เช่น `อ้างอิง: หน้า 12 บรรทัด 3–6`
+**AI ตอบว่า:** ปรับ document indexing ให้ PDF แยกเป็นหน้าและ chunk พร้อม `pageNumber`, `lineStart`, `lineEnd`, เพิ่ม document overview และ metadata เข้า context ทุกครั้ง, เพิ่มกติกา prompt ให้ตอบจาก metadata/overview เมื่อถามว่าไฟล์อะไร และให้ตอบพร้อม citation เมื่ออ้างจากเนื้อหาเอกสาร
+**สิ่งที่เราปรับเอง:** พบว่า backend process เก่ายังรันอยู่ที่พอร์ต 4000 จึง restart backend เพื่อให้โค้ดอ่านไฟล์และ prompt ใหม่ถูกใช้งานจริง
+
+## Session 31: แยก logic ตรวจ session ออกจากหน้า chat
+**คำถามที่ถาม AI:** ย้าย logic ใน `frontend/src/app/chat/page.tsx` เช่น `API_BASE_URL`, `cookies()`, `fetch /auth/session`, และ redirect ไปไว้อื่น เพื่อให้เรียกใช้ซ้ำได้
+**AI ตอบว่า:** สร้าง `frontend/src/lib/serverAuth.ts` และแยก helper ฝั่ง server เป็น `getServerCookieHeader()`, `hasValidServerSession()` และ `requireServerSession()` จากนั้นแก้ `app/chat/page.tsx` ให้เหลือแค่เรียก `await requireServerSession()` แล้ว render `ChatWorkspace`
+**สิ่งที่เราปรับเอง:** คง `export const dynamic = "force-dynamic"` ไว้ในหน้า chat เพื่อให้ตรวจ session แบบ server-side ทุกครั้ง
+
+## Session 32: แก้ปัญหา backend ไม่เห็นไฟล์อัปโหลด
+**คำถามที่ถาม AI:** แก้ปัญหาแชทตอบว่าไม่เห็นไฟล์ ทั้งที่หน้าเว็บแสดงไฟล์ที่อัปโหลดแล้ว
+**AI ตอบว่า:** แก้ frontend ให้ส่งทั้ง `documentIds` และ metadata ของไฟล์ไปกับ request แชท, เพิ่ม fallback ฝั่ง backend ให้ตอบจาก metadata ได้แม้ record เก่าหรือ record ที่ไม่มี `userId` จะหาไม่เจอ, และปรับ query เอกสารให้รองรับไฟล์เก่าที่ upload ก่อนเพิ่ม schema ใหม่
+**สิ่งที่เราปรับเอง:** ต้อง refresh หน้า `/chat` และถามใหม่ เพราะข้อความเก่าที่ AI ตอบผิดไปแล้วไม่สามารถเปลี่ยนย้อนหลังได้
+
+## Session 33: แก้ปัญหาถามไฟล์นี้แล้ว AI ตอบปนไฟล์อื่น
+**คำถามที่ถาม AI:** แก้ปัญหาถามไฟล์นี้ แต่มันตอบไฟล์อื่นหรือตอบรวมทุกไฟล์ที่เคยอัปโหลดในแชท
+**AI ตอบว่า:** ปรับ logic เลือกเอกสารใน `ChatPanel.tsx` ให้ถ้าข้อความนั้นแนบไฟล์มา จะส่งเฉพาะไฟล์แนบนั้นเข้า context, ถ้าไม่ได้แนบจะใช้ไฟล์ล่าสุดในแชท และจะรวมทุกไฟล์เฉพาะเมื่อคำถามมีคำอย่าง `ทั้งหมด`, `ทุกไฟล์`, `ทุกเอกสาร`, `รวมทุก`, `all files`, `all documents`
+**สิ่งที่เราปรับเอง:** เพิ่ม safeguard ใน backend prompt ว่า context ที่ส่งมาเป็น target files ของคำถามปัจจุบันเท่านั้น และห้ามตอบจากไฟล์อื่นนอกชุดนี้ พร้อม restart backend ให้ใช้ logic ใหม่
+
+
+
+
 

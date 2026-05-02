@@ -26,6 +26,9 @@ const BASE_SYSTEM_PROMPT = [
   'อย่าแต่งข้อมูลขึ้นเอง ถ้าไม่มีข้อมูลให้ตอบตรงๆ ว่าไม่แน่ใจ',
   'ถ้าไม่แน่ใจให้ถามกลับสั้นๆ แทนการเดายาว',
   'ห้ามแสดง reasoning, thought, chain-of-thought หรือขั้นตอนคิดภายใน',
+  'Format helpful answers with Markdown that matches the user question: short headings, bullet lists, numbered steps, tables, blockquotes, and fenced code blocks when useful.',
+  'Keep very short greetings or simple factual answers as normal text unless Markdown improves readability.',
+  'Do not wrap the whole answer in a Markdown code fence unless the user asks for code only.',
 ].join('\n');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -68,7 +71,14 @@ const streamMockResponse = async ({ messages, onChunk, signal }) => {
   const lastUserMessage =
     [...messages].reverse().find((message) => message.role === 'user')?.content ||
     'your message';
-  const response = `Demo AI response: I received "${lastUserMessage}". Add GEMINI_API_KEY or ANTHROPIC_API_KEY to use a real AI provider.`;
+  const response = [
+    '## Demo AI response',
+    '',
+    `I received: **${lastUserMessage}**`,
+    '',
+    '- Add `GEMINI_API_KEY` or `ANTHROPIC_API_KEY` to use a real AI provider.',
+    '- Markdown rendering is active for assistant messages.',
+  ].join('\n');
 
   for (const chunk of response.match(/.{1,12}/g) || []) {
     if (signal.aborted) {

@@ -1,49 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createConversation,
+  deleteConversation,
+  listConversations,
+  updateConversation,
+} from "@/api/conversations";
 import type { ChatMessage, ChatSession } from "@/types/chat";
 import ChatPanel from "./ChatPanel";
 import Sidebar from "./Sidebar";
 
-const STORAGE_KEY = "chatai.sessions.v1";
-
-const createId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random()}`;
-
-const createSession = (): ChatSession => {
-  const now = Date.now();
-
-  return {
-    id: createId(),
-    title: "แชทใหม่",
-    messages: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-};
-
-function readStoredSessions() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const payload = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = payload ? (JSON.parse(payload) as ChatSession[]) : [];
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+const DEFAULT_TITLE = "แชทใหม่";
+const SAVE_DELAY_MS = 500;
 
 function createTitleFromMessage(message: string) {
   const trimmed = message.trim().replace(/\s+/g, " ");
 
   if (!trimmed) {
-    return "แชทใหม่";
+    return DEFAULT_TITLE;
   }
 
   return trimmed.length > 34 ? `${trimmed.slice(0, 34)}...` : trimmed;
@@ -51,30 +26,52 @@ function createTitleFromMessage(message: string) {
 
 export default function ChatWorkspace() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>("");
+  const [activeSessionId, setActiveSessionId] = useState("");
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const saveTimersRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const storedSessions = readStoredSessions();
-      const initialSessions =
-        storedSessions.length > 0 ? storedSessions : [createSession()];
+    let mounted = true;
+    const saveTimers = saveTimersRef.current;
 
-      setSessions(initialSessions);
-      setActiveSessionId(initialSessions[0].id);
-      setHasLoaded(true);
-    }, 0);
+    async function loadSessions() {
+      try {
+        const storedSessions = await listConversations();
+        const initialSessions =
+          storedSessions.length > 0
+            ? storedSessions
+            : [await createConversation({ title: DEFAULT_TITLE })];
 
-    return () => window.clearTimeout(timer);
-  }, []);
+        if (!mounted) {
+          return;
+        }
 
-  useEffect(() => {
-    if (!hasLoaded) {
-      return;
+        setSessions(initialSessions);
+        setActiveSessionId(initialSessions[0].id);
+        setSyncError("");
+      } catch (error) {
+        if (mounted) {
+          setSyncError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load conversations."
+          );
+        }
+      } finally {
+        if (mounted) {
+          setHasLoaded(true);
+        }
+      }
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-  }, [hasLoaded, sessions]);
+    loadSessions();
+
+    return () => {
+      mounted = false;
+      Object.values(saveTimers).forEach((timer) => window.clearTimeout(timer));
+    };
+  }, []);
 
   const activeSession = useMemo(
     () =>
@@ -84,11 +81,43 @@ export default function ChatWorkspace() {
     [activeSessionId, sessions]
   );
 
-  function handleNewChat() {
-    const session = createSession();
+  function queueSaveSession(session: ChatSession) {
+    window.clearTimeout(saveTimersRef.current[session.id]);
+    saveTimersRef.current[session.id] = window.setTimeout(() => {
+      updateConversation(session.id, {
+        title: session.title,
+        messages: session.messages,
+        titleEdited: session.titleEdited,
+      })
+        .then(() => setSyncError(""))
+        .catch((error) => {
+          setSyncError(
+            error instanceof Error
+              ? error.message
+              : "Unable to save conversation."
+          );
+        });
+    }, SAVE_DELAY_MS);
+  }
 
-    setSessions((current) => [session, ...current]);
+  async function ensureConversationExists() {
+    const session = await createConversation({ title: DEFAULT_TITLE });
+    setSessions([session]);
     setActiveSessionId(session.id);
+  }
+
+  async function handleNewChat() {
+    try {
+      const session = await createConversation({ title: DEFAULT_TITLE });
+
+      setSessions((current) => [session, ...current]);
+      setActiveSessionId(session.id);
+      setSyncError("");
+    } catch (error) {
+      setSyncError(
+        error instanceof Error ? error.message : "Unable to create conversation."
+      );
+    }
   }
 
   function handleSelectSession(sessionId: string) {
@@ -96,44 +125,73 @@ export default function ChatWorkspace() {
   }
 
   function handleRenameSession(sessionId: string, title: string) {
-    const nextTitle = title.trim() || "แชทใหม่";
+    const nextTitle = title.trim() || DEFAULT_TITLE;
 
     setSessions((current) =>
-      current.map((session) =>
-        session.id === sessionId
-          ? {
-            ...session,
-            title: nextTitle,
-            titleEdited: true,
-            updatedAt: Date.now(),
-          }
-          : session
-      )
+      current.map((session) => {
+        if (session.id !== sessionId) {
+          return session;
+        }
+
+        const updatedSession = {
+          ...session,
+          title: nextTitle,
+          titleEdited: true,
+          updatedAt: Date.now(),
+        };
+
+        queueSaveSession(updatedSession);
+        return updatedSession;
+      })
     );
   }
 
   function handleDeleteSession(sessionId: string) {
+    window.clearTimeout(saveTimersRef.current[sessionId]);
+    delete saveTimersRef.current[sessionId];
+
     setSessions((current) => {
       const remaining = current.filter((session) => session.id !== sessionId);
-      const nextSessions = remaining.length > 0 ? remaining : [createSession()];
 
       if (sessionId === activeSessionId) {
-        setActiveSessionId(nextSessions[0].id);
+        setActiveSessionId(remaining[0]?.id ?? "");
       }
 
-      return nextSessions;
+      return remaining;
     });
+
+    deleteConversation(sessionId)
+      .then(async () => {
+        setSyncError("");
+        const remainingSessions = await listConversations();
+
+        if (remainingSessions.length === 0) {
+          await ensureConversationExists();
+          return;
+        }
+
+        setSessions(remainingSessions);
+        setActiveSessionId((current) => current || remainingSessions[0].id);
+      })
+      .catch((error) => {
+        setSyncError(
+          error instanceof Error ? error.message : "Unable to delete conversation."
+        );
+      });
   }
 
-  function handleMessagesChange(messages: ChatMessage[]) {
+  function handleMessagesChange(
+    messages: ChatMessage[],
+    options: { persist?: boolean } = {}
+  ) {
     if (!activeSession) {
       return;
     }
 
     setSessions((current) => {
       const updatedAt = Date.now();
-
-      return current
+      let updatedSession: ChatSession | null = null;
+      const nextSessions = current
         .map((session) => {
           if (session.id !== activeSession.id) {
             return session;
@@ -143,7 +201,7 @@ export default function ChatWorkspace() {
             (message) => message.role === "user"
           );
 
-          return {
+          updatedSession = {
             ...session,
             title:
               session.titleEdited || !firstUserMessage
@@ -152,13 +210,33 @@ export default function ChatWorkspace() {
             messages,
             updatedAt,
           };
+
+          return updatedSession;
         })
         .sort((a, b) => b.updatedAt - a.updatedAt);
+
+      if (updatedSession && options.persist !== false) {
+        queueSaveSession(updatedSession);
+      }
+
+      return nextSessions;
     });
   }
 
-  if (!hasLoaded || !activeSession) {
-    return <div className="min-h-screen bg-slate-50" />;
+  if (!hasLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
+        กำลังโหลดประวัติแชท...
+      </div>
+    );
+  }
+
+  if (!activeSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-sm text-red-600">
+        {syncError || "Unable to load conversations."}
+      </div>
+    );
   }
 
   return (
@@ -173,14 +251,17 @@ export default function ChatWorkspace() {
       />
 
       <main className="flex min-h-screen flex-1 flex-col bg-slate-50">
+        {syncError ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-700">
+            {syncError}
+          </div>
+        ) : null}
         <ChatPanel
           key={activeSession.id}
           messages={activeSession.messages}
           onMessagesChange={handleMessagesChange}
         />
       </main>
-
-
     </div>
   );
 }

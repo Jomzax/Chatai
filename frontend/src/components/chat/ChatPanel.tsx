@@ -5,6 +5,7 @@ import { Bot, Loader2, UserRound } from "lucide-react";
 import { streamChat } from "@/api/chat";
 import type { ChatMessage } from "@/types/chat";
 import type { UploadedDocument } from "@/types/upload";
+import MarkdownMessage from "./MarkdownMessage";
 import MessageInput from "./MessageInput";
 
 const MAX_CONTEXT_MESSAGES = 8;
@@ -17,7 +18,10 @@ const createId = () =>
 
 type Props = {
   messages: ChatMessage[];
-  onMessagesChange: (messages: ChatMessage[]) => void;
+  onMessagesChange: (
+    messages: ChatMessage[],
+    options?: { persist?: boolean }
+  ) => void;
 };
 
 function estimateTokens(messages: ChatMessage[]) {
@@ -134,7 +138,8 @@ export default function ChatPanel({ messages, onMessagesChange }: Props) {
       status: "streaming",
     };
 
-    onMessagesChange([...nextMessages, assistantMessage]);
+    onMessagesChange(nextMessages);
+    onMessagesChange([...nextMessages, assistantMessage], { persist: false });
     setError("");
     setIsResponding(true);
     const targetDocuments = collectTargetDocuments({
@@ -156,7 +161,8 @@ export default function ChatPanel({ messages, onMessagesChange }: Props) {
               item.id === assistantMessage.id
                 ? { ...item, content: item.content + chunk }
                 : item
-            )
+            ),
+            { persist: false }
           );
 
           assistantMessage.content += chunk;
@@ -219,7 +225,7 @@ export default function ChatPanel({ messages, onMessagesChange }: Props) {
                   ) : null}
 
                   <div
-                    className={`max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                    className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
                       message.role === "user"
                         ? "bg-indigo-600 text-white"
                         : "border border-slate-200 bg-white text-slate-800"
@@ -229,7 +235,13 @@ export default function ChatPanel({ messages, onMessagesChange }: Props) {
                         : ""
                     }`}
                   >
-                    {message.content}
+                    {message.role === "assistant" ? (
+                      <MarkdownMessage content={message.content} />
+                    ) : (
+                      <div className="whitespace-pre-wrap break-words">
+                        {message.content}
+                      </div>
+                    )}
                     {message.attachments?.length ? (
                       <div className="mt-3 space-y-2">
                         {message.attachments.map((attachment) => (
