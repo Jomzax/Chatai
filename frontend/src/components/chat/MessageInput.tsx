@@ -18,6 +18,7 @@ import type { UploadDocumentResponse, UploadedDocument } from "@/types/upload";
 
 type Props = {
   disabled?: boolean;
+  disabledReason?: string;
   onSend?: (
     message: string,
     attachments: UploadedDocument[]
@@ -49,6 +50,7 @@ function countTextLines(content: string) {
 
 export default function MessageInput({
   disabled = false,
+  disabledReason = "",
   onSend,
   tokenTotal = 0,
   tokenLimit = 3000,
@@ -224,6 +226,11 @@ export default function MessageInput({
         {uploadError ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {uploadError}
+          </div>
+        ) : null}
+        {disabledReason ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            {disabledReason}
           </div>
         ) : null}
       </div>

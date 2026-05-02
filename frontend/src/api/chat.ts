@@ -12,6 +12,21 @@ type StreamChatOptions = {
   onChunk: (chunk: string) => void;
 };
 
+function formatRetryAfter(seconds: number) {
+  if (seconds < 60) {
+    return `${seconds} วินาที`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (remainingSeconds === 0) {
+    return `${minutes} นาที`;
+  }
+
+  return `${minutes} นาที ${remainingSeconds} วินาที`;
+}
+
 export async function streamChat({
   messages,
   documentIds = [],
@@ -31,9 +46,18 @@ export async function streamChat({
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as
-      | { message?: string }
+      | { message?: string; retryAfter?: number }
       | null;
-    throw new Error(payload?.message ?? "Unable to start AI chat.");
+    const retryAfter =
+      payload?.retryAfter ??
+      Number(response.headers.get("Retry-After") || 0);
+    const message = payload?.message ?? "Unable to start AI chat.";
+
+    throw new Error(
+      response.status === 429 && retryAfter > 0 && !message.includes("Try again")
+        ? `${message} ลองใหม่ได้ในอีก ${formatRetryAfter(retryAfter)}`
+        : message
+    );
   }
 
   const reader = response.body?.getReader();

@@ -4,12 +4,26 @@ const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const DEFAULT_CLAUDE_MODEL = 'claude-3-5-haiku-latest';
 const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 220;
 const DEFAULT_CHAT_TEMPERATURE = 0.85;
+const DEFAULT_API_KEY_COOLDOWN_MS = 60 * 1000;
 const CHAT_MAX_OUTPUT_TOKENS = Number(
   process.env.CHAT_MAX_OUTPUT_TOKENS || DEFAULT_CHAT_MAX_OUTPUT_TOKENS
 );
 const CHAT_TEMPERATURE = Number(
   process.env.CHAT_TEMPERATURE || DEFAULT_CHAT_TEMPERATURE
 );
+const API_KEY_COOLDOWN_MS = Number(
+  process.env.API_KEY_COOLDOWN_MS || DEFAULT_API_KEY_COOLDOWN_MS
+);
+const keyRotationState = {
+  claude: {
+    cursor: 0,
+    cooldownUntil: new Map(),
+  },
+  gemini: {
+    cursor: 0,
+    cooldownUntil: new Map(),
+  },
+};
 const CHAT_STYLE_VARIANTS = [
   'ตอบแบบเพื่อนคุยกัน สั้น ชัด ตรงประเด็น',
   'ใช้ประโยคธรรมชาติแบบคนพิมพ์แชทจริง ไม่เป็นทางการเกินไป',
@@ -26,28 +40,88 @@ const BASE_SYSTEM_PROMPT = [
   'อย่าแต่งข้อมูลขึ้นเอง ถ้าไม่มีข้อมูลให้ตอบตรงๆ ว่าไม่แน่ใจ',
   'ถ้าไม่แน่ใจให้ถามกลับสั้นๆ แทนการเดายาว',
   'ห้ามแสดง reasoning, thought, chain-of-thought หรือขั้นตอนคิดภายใน',
-  'Format helpful answers with Markdown that matches the user question: short headings, bullet lists, numbered steps, tables, blockquotes, and fenced code blocks when useful.',
-  'Keep very short greetings or simple factual answers as normal text unless Markdown improves readability.',
-  'Do not wrap the whole answer in a Markdown code fence unless the user asks for code only.',
+  'จัดรูปแบบคำตอบที่มีโครงสร้างด้วย Markdown ให้เหมาะกับคำถาม เช่น หัวข้อสั้น ๆ, bullet list, numbered list, ตาราง, blockquote และ fenced code block เมื่อช่วยให้อ่านง่ายขึ้น',
+  'ถ้าเป็นคำทักทายสั้น ๆ หรือคำตอบข้อเท็จจริงง่าย ๆ ให้ตอบเป็นข้อความธรรมดา เว้นแต่ Markdown จะช่วยให้อ่านง่ายขึ้น',
+  'ห้ามครอบคำตอบทั้งหมดด้วย Markdown code fence เว้นแต่ผู้ใช้ขอให้ตอบเป็นโค้ดเท่านั้น',
 ].join('\n');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const getEnvList = (multiKey, singleKey) => {
+  const values = [
+    ...(process.env[multiKey] || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+    process.env[singleKey],
+  ].filter(Boolean);
+
+  return [...new Set(values)];
+};
+
 const createProviderError = (
   message,
   statusCode = 502,
-  { provider, upstreamStatus } = {}
+  { provider, upstreamStatus, keyIndex } = {}
 ) => {
   const error = new Error(message);
   error.statusCode = statusCode;
   error.provider = provider;
   error.upstreamStatus = upstreamStatus;
+  error.keyIndex = keyIndex;
   return error;
 };
 
 const isFallbackEligibleError = (error) => {
   const status = error.upstreamStatus || error.statusCode;
-  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+  return (
+    status === 401 ||
+    status === 403 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  );
+};
+
+const markKeyCooldown = ({ provider, keyIndex }) => {
+  if (!provider || keyIndex === undefined) {
+    return;
+  }
+
+  keyRotationState[provider]?.cooldownUntil.set(
+    keyIndex,
+    Date.now() + API_KEY_COOLDOWN_MS
+  );
+};
+
+const createProviderAttempts = ({ provider, keys, stream }) => {
+  if (keys.length === 0) {
+    return [];
+  }
+
+  const state = keyRotationState[provider];
+  const now = Date.now();
+  const attempts = [];
+
+  for (let offset = 0; offset < keys.length; offset += 1) {
+    const keyIndex = (state.cursor + offset) % keys.length;
+    const cooldownUntil = state.cooldownUntil.get(keyIndex) || 0;
+
+    if (cooldownUntil <= now) {
+      attempts.push({
+        name: keys.length > 1 ? `${provider}#${keyIndex + 1}` : provider,
+        provider,
+        keyIndex,
+        apiKey: keys[keyIndex],
+        stream,
+      });
+    }
+  }
+
+  state.cursor = (state.cursor + 1) % keys.length;
+  return attempts;
 };
 
 const normalizeMessages = (messages) =>
@@ -129,8 +203,13 @@ const createGeminiGenerationConfig = () => {
   return config;
 };
 
-const streamGeminiResponse = async ({ messages, onChunk, signal }) => {
-  const apiKey = process.env.GEMINI_API_KEY;
+const streamGeminiResponse = async ({
+  apiKey,
+  keyIndex,
+  messages,
+  onChunk,
+  signal,
+}) => {
   const model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
   const response = await fetch(url, {
@@ -159,6 +238,7 @@ const streamGeminiResponse = async ({ messages, onChunk, signal }) => {
       {
         provider: 'gemini',
         upstreamStatus: response.status,
+        keyIndex,
       }
     );
   }
@@ -169,6 +249,7 @@ const streamGeminiResponse = async ({ messages, onChunk, signal }) => {
     throw createProviderError('Gemini response stream is unavailable.', 502, {
       provider: 'gemini',
       upstreamStatus: 502,
+      keyIndex,
     });
   }
 
@@ -211,8 +292,13 @@ const parseClaudeSseLine = (line) => {
   return parsed.type === 'content_block_delta' ? parsed.delta?.text || '' : '';
 };
 
-const streamClaudeResponse = async ({ messages, onChunk, signal }) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+const streamClaudeResponse = async ({
+  apiKey,
+  keyIndex,
+  messages,
+  onChunk,
+  signal,
+}) => {
   const model = process.env.CLAUDE_MODEL || DEFAULT_CLAUDE_MODEL;
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -240,6 +326,7 @@ const streamClaudeResponse = async ({ messages, onChunk, signal }) => {
       {
         provider: 'claude',
         upstreamStatus: response.status,
+        keyIndex,
       }
     );
   }
@@ -250,6 +337,7 @@ const streamClaudeResponse = async ({ messages, onChunk, signal }) => {
     throw createProviderError('Claude response stream is unavailable.', 502, {
       provider: 'claude',
       upstreamStatus: 502,
+      keyIndex,
     });
   }
 
@@ -278,25 +366,35 @@ const streamClaudeResponse = async ({ messages, onChunk, signal }) => {
 };
 
 export const streamAiChat = async ({ messages, onChunk, signal }) => {
-  const providers = [];
-
-  if (process.env.GEMINI_API_KEY) {
-    providers.push({
-      name: 'gemini',
+  const geminiKeys = getEnvList('GEMINI_API_KEYS', 'GEMINI_API_KEY');
+  const claudeKeys = getEnvList('ANTHROPIC_API_KEYS', 'ANTHROPIC_API_KEY');
+  const hasConfiguredProvider = geminiKeys.length > 0 || claudeKeys.length > 0;
+  const providers = [
+    ...createProviderAttempts({
+      provider: 'gemini',
+      keys: geminiKeys,
       stream: streamGeminiResponse,
-    });
-  }
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    providers.push({
-      name: 'claude',
+    }),
+    ...createProviderAttempts({
+      provider: 'claude',
+      keys: claudeKeys,
       stream: streamClaudeResponse,
-    });
+    }),
+  ];
+
+  if (!hasConfiguredProvider) {
+    await streamMockResponse({ messages, onChunk, signal });
+    return;
   }
 
   if (providers.length === 0) {
-    await streamMockResponse({ messages, onChunk, signal });
-    return;
+    throw createProviderError(
+      'All AI API keys are cooling down. Please try again shortly.',
+      429,
+      {
+        upstreamStatus: 429,
+      }
+    );
   }
 
   let lastError;
@@ -306,6 +404,8 @@ export const streamAiChat = async ({ messages, onChunk, signal }) => {
 
     try {
       await provider.stream({
+        apiKey: provider.apiKey,
+        keyIndex: provider.keyIndex,
         messages,
         signal,
         onChunk: (chunk) => {
@@ -320,6 +420,11 @@ export const streamAiChat = async ({ messages, onChunk, signal }) => {
       if (hasStreamedChunk || !isFallbackEligibleError(error)) {
         throw error;
       }
+
+      markKeyCooldown({
+        provider: error.provider || provider.provider,
+        keyIndex: error.keyIndex ?? provider.keyIndex,
+      });
 
       console.warn(
         `${provider.name} chat provider failed before streaming; trying fallback provider.`,

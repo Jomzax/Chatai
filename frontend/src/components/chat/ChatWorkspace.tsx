@@ -258,6 +258,7 @@ export default function ChatWorkspace() {
         ) : null}
         <ChatPanel
           key={activeSession.id}
+          sessionId={activeSession.id}
           messages={activeSession.messages}
           onMessagesChange={handleMessagesChange}
         />
