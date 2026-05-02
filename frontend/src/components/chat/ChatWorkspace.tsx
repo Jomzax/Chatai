@@ -37,6 +37,7 @@ export default function ChatWorkspace() {
   const [activeSessionId, setActiveSessionId] = useState("");
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncError, setSyncError] = useState("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const saveTimersRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
@@ -270,6 +271,8 @@ export default function ChatWorkspace() {
   return (
     <div className="mt-0 flex h-screen overflow-hidden bg-slate-50 text-slate-900">
       <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((current) => !current)}
         sessions={sidebarSessions}
         activeSessionId={activeSession.id}
         onNewChat={handleNewChat}

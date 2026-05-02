@@ -475,7 +475,7 @@ export default function ChatPanel({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-10 py-5">
+      <div className="shrink-0 border-t border-slate-200 bg-slate-10 px-10 py-3">
         <div className="mx-auto max-w-4xl">
           {error ? (
             <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
