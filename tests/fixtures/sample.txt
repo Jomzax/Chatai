@@ -1,0 +1,20 @@
+Chat AI Document Indexing Sample
+=================================
+
+This is a small sample text used by the documentContext unit tests.
+It contains multiple lines so the chunker can produce at least one chunk.
+
+Section A
+- Alpha line one talking about retrieval augmented generation.
+- Alpha line two referencing embeddings and vector search.
+- Alpha line three discussing chunk overlap heuristics.
+
+Section B
+- Beta line one about token budgets and context windows.
+- Beta line two about citations and page numbers.
+- Beta line three about evaluation metrics.
+
+Section C
+- Gamma line one summarising whole document queries.
+- Gamma line two summarising relevant chunk selection.
+- Gamma line three closing the fixture file.

@@ -1,10 +1,5 @@
 # บันทึกการใช้งาน AI
 
-
-## Session 34: ปรับ Docker Compose + .env ให้รันจริงและปลอดภัยขึ้น
-**คำถามที่ถาม AI:** ให้โปรเจกต์รันได้ด้วย `docker compose up` แบบทั้งระบบ, ไม่ hardcode ค่าจริงใน compose/.env.example, แก้ปัญหา login วน และอธิบาย error เรื่อง quota/billing กับ env ให้ชัด
-**AI ตอบว่า:** ปรับโครงสร้าง Docker ให้ชัดเจนขึ้น (frontend/backend/mongodb), เพิ่ม healthcheck ฝั่ง backend (`/health`) เพื่อให้ dependency พร้อมก่อน, และปรับการเรียก session ฝั่ง frontend server ให้ใช้ internal URL ใน Docker (`INTERNAL_API_BASE_URL`) แทนการยิง `localhost` ข้าม container; ฝั่ง backend ปรับ cookie/session policy ให้เหมาะกับการรัน local http กับ production
-**สิ่งที่เราปรับเอง:** ย้ำแนวทางความปลอดภัยว่าไฟล์ `backend/.env.example` เป็นตัวอย่างเท่านั้น (ห้ามใส่ key จริง), ค่าจริงต้องอยู่ `backend/.env`; ตรวจจุดที่ระบบโหลด env แล้วพบว่า backend จะพังทันทีถ้าไม่มี `SESSION_SECRET` ในโหมด production; สรุปสาเหตุ error Gemini 429 ว่าเกิดได้จาก quota หรือ credit หมด (billing) แม้กราฟ rate limit ยังไม่ชน; และยืนยัน workflow ว่าถ้าแก้ backend ต้อง build image ใหม่ก่อน (`docker compose up -d --build`)
 ## Session 1: สร้างระบบบันทึก AI Journal อัตโนมัติ
 **คำถามที่ถาม AI:** "จะทำยังไงให้ AI บันทึก AI_JOURNAL.md ให้ตลอดทุกการถาม หรือสร้างโฟลเดอร์ skills ดีกว่าไหม"
 **AI ตอบว่า:** แนะนำสร้าง custom skill/slash command แทนการใช้ hook อัตโนมัติ เพราะคุมได้ดีกว่า แล้วสร้างไฟล์ `.claude/skills/journal/SKILL.md` (พร้อม template.md และ examples/sample.md) และ `.claude/commands/journal.md` ให้พิมพ์ `/journal` เรียกใช้ได้
@@ -170,6 +165,19 @@
 **AI ตอบว่า:** ปรับ logic เลือกเอกสารใน `ChatPanel.tsx` ให้ถ้าข้อความนั้นแนบไฟล์มา จะส่งเฉพาะไฟล์แนบนั้นเข้า context, ถ้าไม่ได้แนบจะใช้ไฟล์ล่าสุดในแชท และจะรวมทุกไฟล์เฉพาะเมื่อคำถามมีคำอย่าง `ทั้งหมด`, `ทุกไฟล์`, `ทุกเอกสาร`, `รวมทุก`, `all files`, `all documents`
 **สิ่งที่เราปรับเอง:** เพิ่ม safeguard ใน backend prompt ว่า context ที่ส่งมาเป็น target files ของคำถามปัจจุบันเท่านั้น และห้ามตอบจากไฟล์อื่นนอกชุดนี้ พร้อม restart backend ให้ใช้ logic ใหม่
 
+## Session 34: ปรับ Docker Compose + .env ให้รันจริงและปลอดภัยขึ้น
+**คำถามที่ถาม AI:** ให้โปรเจกต์รันได้ด้วย `docker compose up` แบบทั้งระบบ, ไม่ hardcode ค่าจริงใน compose/.env.example, แก้ปัญหา login วน และอธิบาย error เรื่อง quota/billing กับ env ให้ชัด
+**AI ตอบว่า:** ปรับโครงสร้าง Docker ให้ชัดเจนขึ้น (frontend/backend/mongodb), เพิ่ม healthcheck ฝั่ง backend (`/health`) เพื่อให้ dependency พร้อมก่อน, และปรับการเรียก session ฝั่ง frontend server ให้ใช้ internal URL ใน Docker (`INTERNAL_API_BASE_URL`) แทนการยิง `localhost` ข้าม container; ฝั่ง backend ปรับ cookie/session policy ให้เหมาะกับการรัน local http กับ production
+**สิ่งที่เราปรับเอง:** ย้ำแนวทางความปลอดภัยว่าไฟล์ `backend/.env.example` เป็นตัวอย่างเท่านั้น (ห้ามใส่ key จริง), ค่าจริงต้องอยู่ `backend/.env`; ตรวจจุดที่ระบบโหลด env แล้วพบว่า backend จะพังทันทีถ้าไม่มี `SESSION_SECRET` ในโหมด production; สรุปสาเหตุ error Gemini 429 ว่าเกิดได้จาก quota หรือ credit หมด (billing) แม้กราฟ rate limit ยังไม่ชน; และยืนยัน workflow ว่าถ้าแก้ backend ต้อง build image ใหม่ก่อน (`docker compose up -d --build`)
 
+## Session 35: เขียน Unit tests แยกออกจาก backend/frontend (coverage ≥ 40%)
+**คำถามที่ถาม AI:** ให้อ่าน `AI_JOURNAL.md` กับ `.claude` แล้วเขียน Unit tests (coverage ≥ 40%) แยกออกมา ไม่ให้เขียนใน backend/frontend
+**AI ตอบว่า:** สร้างโฟลเดอร์ `tests/` ที่ root พร้อม `package.json` ใช้ Node `node:test` + `c8` ตั้ง threshold ≥ 40% ทุก metric เพิ่ม unit tests 3 ไฟล์ (rateLimit, documentContext, uploadMiddleware) รวม 19 tests ผ่านหมด รัน `npm run coverage` ได้ Statements/Lines 65.51%, Branches 76.31%, Functions 59.25%
+**สิ่งที่เราปรับเอง:** -
+
+## Session 36: ขยาย Unit tests ให้ครอบคลุมทั้ง backend + frontend
+**คำถามที่ถาม AI:** "เทสทั้งหมดเลย"
+**AI ตอบว่า:** จัดโฟลเดอร์ tests แยกเป็น `unit/backend/` (7 ไฟล์, 33 tests: rateLimit, documentContext, uploadMiddleware, aiClient mock path, authService validation, requireAuth, uploadCleanup exports) และ `unit/frontend/` (5 ไฟล์, 28 tests: uploadValidator, uploadApi, authApi, chatApi, conversationsApi โดย mock global.fetch) ติดตั้ง `tsx` เป็น TS loader แก้ปัญหา CJS/ESM interop ด้วย default-import-destructure และเพิ่ม `tests/tsconfig.json` รวม 61 tests ผ่านหมด coverage ภาพรวม Stmts/Lines 60.93%, Branch 80.70%, Funcs 74.52% — frontend api ครอบคลุม 99.31%
+**สิ่งที่เราปรับเอง:** -
 
 

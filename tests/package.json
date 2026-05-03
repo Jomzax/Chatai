@@ -1,0 +1,18 @@
+{
+  "name": "chatai-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Unit tests แยกออกจาก backend/frontend ใช้ Node test runner + c8",
+  "scripts": {
+    "test:backend": "node --test --test-reporter=spec unit/backend/rateLimit.test.js unit/backend/documentContext.test.js unit/backend/uploadMiddleware.test.js unit/backend/aiClient.test.js unit/backend/authService.test.js unit/backend/authMiddleware.test.js unit/backend/uploadCleanup.test.js",
+    "test:frontend": "node --import tsx --test --test-reporter=spec unit/frontend/uploadValidator.test.ts unit/frontend/uploadApi.test.ts unit/frontend/authApi.test.ts unit/frontend/chatApi.test.ts unit/frontend/conversationsApi.test.ts",
+    "test": "npm run test:backend && npm run test:frontend",
+    "coverage": "cd .. && c8 --reports-dir tests/coverage --reporter=text --reporter=html --include=backend/src/middlewares/rateLimit.js --include=backend/src/middlewares/auth.js --include=backend/src/middlewares/upload.js --include=backend/src/services/documentContext.js --include=backend/src/services/aiClient.js --include=backend/src/services/authService.js --include=backend/src/services/uploadCleanup.js --include=frontend/src/api/upload.ts --include=frontend/src/api/auth.ts --include=frontend/src/api/chat.ts --include=frontend/src/api/conversations.ts --lines 40 --functions 40 --branches 40 --statements 40 node --import ./tests/node_modules/tsx/dist/loader.mjs --test tests/unit/backend/rateLimit.test.js tests/unit/backend/documentContext.test.js tests/unit/backend/uploadMiddleware.test.js tests/unit/backend/aiClient.test.js tests/unit/backend/authService.test.js tests/unit/backend/authMiddleware.test.js tests/unit/backend/uploadCleanup.test.js tests/unit/frontend/uploadValidator.test.ts tests/unit/frontend/uploadApi.test.ts tests/unit/frontend/authApi.test.ts tests/unit/frontend/chatApi.test.ts tests/unit/frontend/conversationsApi.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "c8": "^10.1.3",
+    "tsx": "^4.21.0"
+  }
+}
